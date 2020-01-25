@@ -1,11 +1,11 @@
-# OOP-ex4
+# PackMan Navigation-Game
 
 (https://www.youtube.com/watch?v=jh4WLS1RUD8")
 
 #            Info
 This project is Extention of OOp-ex3 with DB
 
-OOP- Ex4 is a Game. The main goal is to collect as much fruits you can "eat", you can do it by two ways:
+is a Game part of course OOP. The main goal in the game is to collect as much fruits you can "eat", you can do it by two ways:
 - Manual mode
 - Auto mode
 
