@@ -35,6 +35,7 @@ import java.awt.FontMetrics;
 import java.awt.Graphics2D;
 import java.awt.Image;
 import java.awt.MediaTracker;
+import java.awt.MenuItem;
 import java.awt.RenderingHints;
 import java.awt.Toolkit;
 
@@ -61,7 +62,12 @@ import java.io.IOException;
 
 import java.net.MalformedURLException;
 import java.net.URL;
-
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.TreeSet;
 import java.util.NoSuchElementException;
@@ -73,7 +79,15 @@ import javax.swing.JLabel;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
 import javax.swing.KeyStroke;
+
+import dataStructure.graph;
+import gameClient.GameManager;
+import gameClient.MyDB;
+import gameClient.MyGameGUI;
+import gameClient.SimpleDB;
+import utils.StdDraw;
 
 /**
  *  The {@code StdDraw} class provides a basic capability for
@@ -479,7 +493,11 @@ import javax.swing.KeyStroke;
  *  @author Kevin Wayne
  */
 public final class StdDraw implements ActionListener, MouseListener, MouseMotionListener, KeyListener {
-
+	// field
+	static GameManager gm;
+	static MyGameGUI g;
+	static boolean isPaint = false;
+	MyDB db;
 	/**
 	 *  The color black.
 	 */
@@ -592,7 +610,10 @@ public final class StdDraw implements ActionListener, MouseListener, MouseMotion
 
 	// boundary of drawing canvas, 0% border
 	// private static final double BORDER = 0.05;
-	private static final double BORDER = 0.00;
+	//change
+	//private static final double BORDER = 0.0;
+	private static final double BORDER = 0.05;
+
 	private static final double DEFAULT_XMIN = 0.0;
 	private static final double DEFAULT_XMAX = 1.0;
 	private static final double DEFAULT_YMIN = 0.0;
@@ -705,7 +726,7 @@ public final class StdDraw implements ActionListener, MouseListener, MouseMotion
 		frame.setResizable(false);
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);            // closes all windows
 		// frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);      // closes only current window
-		frame.setTitle("Standard Draw");
+		frame.setTitle("***-SuperMario Game By Ginton & Fuchs-***");
 		frame.setJMenuBar(createMenuBar());
 		frame.pack();
 		frame.requestFocusInWindow();
@@ -715,14 +736,35 @@ public final class StdDraw implements ActionListener, MouseListener, MouseMotion
 	// create the menu bar (changed to private)
 	private static JMenuBar createMenuBar() {
 		JMenuBar menuBar = new JMenuBar();
-		JMenu menu = new JMenu("File");
-		menuBar.add(menu);
-		JMenuItem menuItem1 = new JMenuItem(" Save...   ");
-		menuItem1.addActionListener(std);
-		menuItem1.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_S,
-				Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
-		menu.add(menuItem1);
+		JMenu Game = new JMenu("New  Game");
+		menuBar.add(Game);
+		JMenuItem manual = new JMenuItem("Manual game");
+		manual.addActionListener(std);
+		JMenuItem Auto = new JMenuItem("Auto game");
+		Auto.addActionListener(std);
+		Game.add(Auto);
+		Game.add(manual);
+		JMenu details = new JMenu("Details");
+		menuBar.add(details);
+		JMenuItem curr = new JMenuItem("Current Level");
+		curr.addActionListener(std);
+		JMenuItem Amu = new JMenuItem("Amount of Games");
+		Amu.addActionListener(std);
+		details.add(curr);
+		details.add(Amu);
+		JMenuItem best = new JMenuItem("Best Scores");
+		best.addActionListener(std);
+		JMenuItem rank = new JMenuItem("Rank by Class");
+		rank.addActionListener(std);
+		details.add(best);
+		details.add(rank);
+		
+		
 		return menuBar;
+	}
+
+	public static void CreateMenu(){
+		JMenuBar menuBar = new JMenuBar();
 	}
 
 
@@ -1297,7 +1339,6 @@ public final class StdDraw implements ActionListener, MouseListener, MouseMotion
 	/*
     private static BufferedImage getImage(String filename) {
         if (filename == null) throw new IllegalArgumentException();
-
         // from a file or URL
         try {
             URL url = new URL(filename);
@@ -1307,7 +1348,6 @@ public final class StdDraw implements ActionListener, MouseListener, MouseMotion
         catch (IOException e) {
             // ignore
         }
-
         // in case file is inside a .jar (classpath relative to StdDraw)
         try {
             URL url = StdDraw.class.getResource(filename);
@@ -1317,7 +1357,6 @@ public final class StdDraw implements ActionListener, MouseListener, MouseMotion
         catch (IOException e) {
             // ignore
         }
-
         // in case file is inside a .jar (classpath relative to root of jar)
         try {
             URL url = StdDraw.class.getResource("/" + filename);
@@ -1649,18 +1688,159 @@ public final class StdDraw implements ActionListener, MouseListener, MouseMotion
 	}
 
 
+	public static void setGraphGUI(MyGameGUI gr){
+		g= gr;
+	}
+	public static  MyGameGUI getGraph() { ///check it if static good!!
+		return g;
+}
+	public static void setIsPaint() {
+		isPaint=true;
+	}
+	public static boolean getIsPaint() {
+		return isPaint;
+	}
+
+	static Thread t;
+	public static void threadPlayManu() 
+	{
+		t = new Thread(new Runnable() 
+		{
+			
+			@Override
+			public void run() 
+			{
+				g.playManual();
+				t.interrupt();
+			}
+			
+		});
+		
+		t.start();
+	}
+	
+	public static void threadPlayAuto() 
+	{
+		t = new Thread(new Runnable() 
+		{
+			
+			@Override
+			public void run() 
+			{
+				//game_Manager.playAuto(my_Gui);
+				g.playAuto();
+				t.interrupt();
+			}
+		});
+		
+		t.start();
+	}
+
+	
+	
 	/**
 	 * This method cannot be called directly.
 	 */
 	@Override
 	public void actionPerformed(ActionEvent e) {
-		FileDialog chooser = new FileDialog(StdDraw.frame, "Use a .png or .jpg extension", FileDialog.SAVE);
-		chooser.setVisible(true);
-		String filename = chooser.getFile();
-		if (filename != null) {
-			StdDraw.save(chooser.getDirectory() + File.separator + chooser.getFile());
-		}
+	String str = e.getActionCommand();
+
+	if(str.equals("Manual game")) {
+		threadPlayManu();
 	}
+
+	if(str.equals("Auto game")) {
+		threadPlayAuto();
+
+	}
+	
+	
+	if(str.equals("Current Level")) 
+	{
+
+
+		int curr = GetCurrentLevel();
+		JOptionPane.showMessageDialog(null, "The Current Level is :" + curr, "Level", JOptionPane.INFORMATION_MESSAGE, null);
+	}
+	
+	if(str.equals("Amount of Games")) 
+	{
+		int num_game = MyDB.getNumOfGames();
+		JOptionPane.showMessageDialog(null, "Amount of Games I Played is:" + num_game, "Games", JOptionPane.INFORMATION_MESSAGE, null);
+	}
+	
+	if(str.equals("Best Scores")) 
+	{
+		JFrame input = new JFrame();
+		String level = JOptionPane.showInputDialog(input, "Enter Scenario Number:\n(Between 0-23) ");
+		int scenario_num = Integer.parseInt(level);
+
+			int bestScore = GetBestScore(scenario_num);
+	
+		JOptionPane.showMessageDialog(null, "My Best Scores :\n " + bestScore, "BST Score" , JOptionPane.INFORMATION_MESSAGE, null);
+	}
+	
+	if(str.equals("Rank by Class")) 
+	{
+		JFrame input = new JFrame();
+
+		String level = JOptionPane.showInputDialog(input, "Enter Scenario Number: for to see your rank \n(Between 0-23) ");
+		int scenario_num = Integer.parseInt(level);
+		int rank = RankClass(scenario_num);
+		
+		JOptionPane.showMessageDialog(null, "My Ranks in the Class :\n " +rank, "Rank", JOptionPane.INFORMATION_MESSAGE, null);
+	}
+	}
+
+
+	//		}
+	//
+	//		if(str.equals("Draw graph")) {
+	//			graph.paint();
+	//		}
+	//
+	//		if(str.equals("Shortest Path")) {
+	//			graph.clear();
+	//			graph.paint();
+	//			graph.shortestPath();
+	//		}
+	//		if(str.equals("Add node")) {
+	//			graph.clear();
+	//			graph.paint();
+	//			graph.add();
+	//		}
+	//		if(str.equals("Remove node")) {
+	//			graph.clear();
+	//			graph.paint();
+	//			graph.removeNode();
+	//		}
+	//		if(str.equals("Remove edge")) {
+	//			graph.clear();
+	//			graph.paint();
+	//			graph.removeEdge();
+	//		}
+	//		if(str.equals("Connect edge")) {
+	//			graph.clear();
+	//			graph.paint();
+	//			graph.Connect();
+	//		}
+	//
+	//		if(str.equals("Shortest Path Dist")) {
+	//			graph.clear();
+	//			graph.paint();
+	//			graph.shortestPathDist();
+	//		}
+	//
+	//		if(str.equals("Is Connceted")) {
+	//			graph.isConnected();
+	//		}
+	//
+	//		if(str.equals("TSP")) {
+	//			graph.clear();
+	//			graph.paint();
+	//			graph.TSP();
+	//		}
+	//	}
 
 
 	/***************************************************************************
@@ -1719,7 +1899,7 @@ public final class StdDraw implements ActionListener, MouseListener, MouseMotion
 	 */
 	@Override
 	public void mouseClicked(MouseEvent e) {
-		// this body is intentionally left empty
+		g.setPoint(StdDraw.userX(e.getX()), StdDraw.userY(e.getY()));
 	}
 
 	/**
@@ -1900,9 +2080,256 @@ public final class StdDraw implements ActionListener, MouseListener, MouseMotion
 		StdDraw.setPenColor(StdDraw.WHITE);
 		StdDraw.text(0.8, 0.8, "white text");
 	}
-
+	
+	/**
+	 * return the current level you the certain user is stay
+	 * @return
+	 */
+	public int GetCurrentLevel()
+	{
+		int [] need_moves = {290,580,0,580,0,500,0,0,0,580,0,580,0,580,0,0,290,0,0,580,290,0,0,1140};
+		int [] need_grade = {145,450,0,720,0,570,0,0,0,510,0,1050,0,310,0,0,235,0,0,250,200,0,0,1000};
+		int max_level=0;
+	
+		try {
+			Class.forName("com.mysql.jdbc.Driver");
+			Connection connection = DriverManager.getConnection(SimpleDB.jdbcUrl, SimpleDB.jdbcUser,
+					SimpleDB.jdbcUserPassword);
+			Statement statement = connection.createStatement();
+			String allCustomersQuery = "SELECT * FROM Logs;";
+			ResultSet resultSet = statement.executeQuery(allCustomersQuery);
+			while (resultSet.next()) {
+			if ((resultSet.getInt("UserID") ==g.GetId()/* 205464712*/) && (resultSet.getInt("levelID") > max_level))
+				if(resultSet.getInt("score")>= need_grade[resultSet.getInt("levelID")] && (resultSet.getInt("moves")<=need_moves[resultSet.getInt("levelID")]))
+					max_level=resultSet.getInt("levelID");
+			}
+		
+	} catch (SQLException sqle) {
+		System.out.println("SQLException: " + sqle.getMessage());
+		System.out.println("Vendor Error: " + sqle.getErrorCode());
+	
+	} 
+		catch (ClassNotFoundException e) {
+			e.printStackTrace();
+		}
+		
+				
+			
+		return max_level;
 }
+	
+	
+	/**
+	 * calculate and return what rank are you in the current level
+	 * @param level
+	 * @return the rank
+	 */
+	public int RankClass (int level)   
+	{
+		int myScore = GetBestScore(level);
+		
+		HashMap<Integer, Integer> id_class	= new HashMap<Integer, Integer>();
 
+		int rank=1;
+		try {
+			Class.forName("com.mysql.jdbc.Driver");
+			Connection connection = DriverManager.getConnection(SimpleDB.jdbcUrl, SimpleDB.jdbcUser,
+					SimpleDB.jdbcUserPassword);
+			Statement statement = connection.createStatement();
+			String allCustomersQuery = "SELECT * FROM Logs;";
+			ResultSet resultSet = statement.executeQuery(allCustomersQuery);
+		
+			while (resultSet.next()) {
+				
+		
+		if (resultSet.getInt("UserID") != g.GetId() && resultSet.getInt("UserID") !=203965884) {
+			if (resultSet.getInt("levelID") == level)
+				
+			switch (level) {
+			
+			case 0:
+				if (resultSet.getInt("moves") <= 290 && resultSet.getInt("score")>125)
+					if (resultSet.getInt("score")>myScore)
+						id_class.put(resultSet.getInt("UserID"), resultSet.getInt("score"));
+			break;
+			case 1:
+				if (resultSet.getInt("moves") <= 580 && resultSet.getInt("score")>436)
+				if (resultSet.getInt("score")>myScore)
+					id_class.put(resultSet.getInt("UserID"), resultSet.getInt("score"));
+			break;
+			case 3:
+				if (resultSet.getInt("moves") <= 580 && resultSet.getInt("score")>713)
+					if (resultSet.getInt("score")>myScore)
+						id_class.put(resultSet.getInt("UserID"), resultSet.getInt("score"));
+			case 5:
+				if (resultSet.getInt("moves") <= 500 && resultSet.getInt("score")>570)
+					if (resultSet.getInt("score")>myScore)
+						id_class.put(resultSet.getInt("UserID"), resultSet.getInt("score"));
+				break;
+			case 9:
+				if (resultSet.getInt("moves") <= 580 && resultSet.getInt("score")>480)
+					if (resultSet.getInt("score")>myScore)
+						id_class.put(resultSet.getInt("UserID"), resultSet.getInt("score"));
+				break;
+			case 11:
+				if (resultSet.getInt("moves") <= 580 && resultSet.getInt("score")>1050)
+					if (resultSet.getInt("score")>myScore)
+						id_class.put(resultSet.getInt("UserID"), resultSet.getInt("score"));
+				break;
+			case 13:
+				if (resultSet.getInt("moves") <= 580 && resultSet.getInt("score")>310)
+					if (resultSet.getInt("score")>myScore)
+						id_class.put(resultSet.getInt("UserID"), resultSet.getInt("score"));
+				break;
+			case 16:
+				if (resultSet.getInt("moves") <= 290 && resultSet.getInt("score")>235)
+					if (resultSet.getInt("score")>myScore)
+						id_class.put(resultSet.getInt("UserID"), resultSet.getInt("score"));
+				break;
+			case 19:
+				if (resultSet.getInt("moves") <= 580 && resultSet.getInt("score")>250)
+					if (resultSet.getInt("score")>myScore)
+						id_class.put(resultSet.getInt("UserID"), resultSet.getInt("score"));
+				break;
+			case 20:
+				if (resultSet.getInt("moves") <= 290 && resultSet.getInt("score")>200)
+					if (resultSet.getInt("score")>myScore)
+						id_class.put(resultSet.getInt("UserID"), resultSet.getInt("score"));
+				break;
+			case 23:
+				if (resultSet.getInt("moves") <= 1140 && resultSet.getInt("score")>1000)
+					if (resultSet.getInt("score")>myScore)
+						id_class.put(resultSet.getInt("UserID"), resultSet.getInt("score"));
+				break;
 
-//Copyright © 2000–2017, Robert Sedgewick and Kevin Wayne. 
-//Last updated: Mon Aug 27 16:43:47 EDT 2018.
+		}
+		}
+		}
+			resultSet.close();
+			statement.close();
+			connection.close();
+		 
+		}
+			catch (SQLException sqle) {
+			System.out.println("SQLException: " + sqle.getMessage());
+			System.out.println("Vendor Error: " + sqle.getErrorCode());
+		
+		} 
+		catch (ClassNotFoundException e) {
+			e.printStackTrace();
+		}
+			return id_class.size()+1;
+	}
+	
+	
+	/**
+	 * Get your lligal high score in the certain level
+	 * @param level
+	 * @return the score
+	 */
+	public int GetBestScore (int level)   
+	{
+//		int [] levels = new int [11]; //{0,1,3,5,9,11,13,16,19,20,23}
+		int max=0;
+		try {
+			Class.forName("com.mysql.jdbc.Driver");
+			Connection connection = DriverManager.getConnection(SimpleDB.jdbcUrl, SimpleDB.jdbcUser,
+					SimpleDB.jdbcUserPassword);
+			Statement statement = connection.createStatement();
+			String allCustomersQuery = "SELECT * FROM Logs;";
+			ResultSet resultSet = statement.executeQuery(allCustomersQuery);
+		
+		
+		
+		
+		while (resultSet.next()) {
+			//System.out.println("id user:"+resultSet.getInt("UserID")+" "+"level="+resultSet.getInt("levelID")+" score:"+resultSet.getInt("score"));
+//		int score =resultSet.getInt("score") ; 
+			if (resultSet.getInt("UserID") == g.GetId() || resultSet.getInt("UserID") == 203965884) {
+//				int scanrio = resultSet.getInt("levelID") ;
+//				int score =resultSet.getInt("score") ; 
+				if (resultSet.getInt("levelID") == level) {
+					switch (level) {
+					
+					case 0:
+						if (resultSet.getInt("moves") <= 290 && resultSet.getInt("score")>125)
+							if (resultSet.getInt("score")>max)
+								max = resultSet.getInt("score");	
+					break;
+					case 1:
+						if (resultSet.getInt("moves") <= 580 && resultSet.getInt("score")>436)
+							if (resultSet.getInt("score")>max)
+								max = resultSet.getInt("score");	
+					break;
+					case 3:
+						if (resultSet.getInt("moves") <= 580 && resultSet.getInt("score")>713)
+							if (resultSet.getInt("score")>max)
+								max = resultSet.getInt("score");	
+					case 5:
+						if (resultSet.getInt("moves") <= 500 && resultSet.getInt("score")>570)
+							if (resultSet.getInt("score")>max)
+								max = resultSet.getInt("score");	
+						break;
+					case 9:
+						if (resultSet.getInt("moves") <= 580 && resultSet.getInt("score")>480)
+							if (resultSet.getInt("score")>max)
+								max = resultSet.getInt("score");	
+						break;
+					case 11:
+						if (resultSet.getInt("moves") <= 580 && resultSet.getInt("score")>1050)
+							if (resultSet.getInt("score")>max)
+								max = resultSet.getInt("score");	
+						break;
+					case 13:
+						if (resultSet.getInt("moves") <= 580 && resultSet.getInt("score")>310)
+							if (resultSet.getInt("score")>max)
+								max = resultSet.getInt("score");	
+						break;
+					case 16:
+						if (resultSet.getInt("moves") <= 290 && resultSet.getInt("score")>235)
+							if (resultSet.getInt("score")>max)
+								max = resultSet.getInt("score");	
+						break;
+					case 19:
+						if (resultSet.getInt("moves") <= 580 && resultSet.getInt("score")>250)
+							if (resultSet.getInt("score")>max)
+								max = resultSet.getInt("score");	
+						break;
+					case 20:
+						if (resultSet.getInt("moves") <= 290 && resultSet.getInt("score")>200)
+							if (resultSet.getInt("score")>max)
+								max = resultSet.getInt("score");	
+						break;
+					case 23:
+						if (resultSet.getInt("moves") <= 1140 && resultSet.getInt("score")>1000)
+							if (resultSet.getInt("score")>max)
+								max = resultSet.getInt("score");	
+						break;	
+				}
+	
+			}
+		}
+		}
+		resultSet.close();
+		statement.close();
+		connection.close();
+	} catch (SQLException sqle) {
+		System.out.println("SQLException: " + sqle.getMessage());
+		System.out.println("Vendor Error: " + sqle.getErrorCode());
+	
+	} 
+	catch (ClassNotFoundException e) {
+		e.printStackTrace();
+	}
+		
+		
+
+	return max;		
+	}
+	
+	
+	
+
+	
+	
+}
